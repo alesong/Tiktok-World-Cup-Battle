@@ -51,7 +51,7 @@ export class TikTokLiveService {
 
       // Bind real-world events to our game pipeline
       this.tiktokConnection.on('gift', (data: any) => {
-        this.handleGift({
+        console.log('GIFT RECEIVED:', data.uniqueId, data.giftName); this.handleGift({
           username: data.uniqueId,
           giftName: data.giftName,
           count: data.repeatCount || 1,
@@ -60,7 +60,7 @@ export class TikTokLiveService {
       });
 
       this.tiktokConnection.on('like', (data: any) => {
-        this.handleLike({
+        console.log('LIKE RECEIVED:', data.uniqueId, data.likeCount); this.handleLike({
           username: data.uniqueId,
           likeCount: data.likeCount || 1,
           avatar: data.profilePictureUrl || ''
