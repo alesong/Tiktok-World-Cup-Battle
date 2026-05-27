@@ -17,6 +17,14 @@ export interface Donor {
   avatar: string;
 }
 
+export interface TikTokState {
+  connected: boolean;
+  username: string;
+  error: string;
+  reconnecting: boolean;
+  reconnectAttempt: number;
+}
+
 export interface GameSettings {
   admin_password?: string;
   goal_distance_diamonds: string;
@@ -81,6 +89,13 @@ interface GameState {
   rewardTimeLeft: number;
   likeCelebration: boolean;
   lastDonor: { username: string; avatar: string; giftName?: string; diamonds?: number } | null;
+  tiktokState: TikTokState;
+  speechRate: number;
+  speechVolume: number;
+  speechVoiceURI: string;
+  speechEnabled: boolean;
+  speak: (text: string) => void;
+  setSpeechSettings: (settings: { speechRate?: number; speechVolume?: number; speechVoiceURI?: string; speechEnabled?: boolean }) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -146,6 +161,51 @@ export const useGameStore = create<GameState>((set, get) => {
     isConnected: false,
     socket: null,
     soundSynth: null,
+    tiktokState: {
+      connected: false,
+      username: '',
+      error: '',
+      reconnecting: false,
+      reconnectAttempt: 0
+    },
+
+    speechRate: parseFloat(localStorage.getItem('tts_rate') || '0.9'),
+    speechVolume: parseFloat(localStorage.getItem('tts_volume') || '1'),
+    speechVoiceURI: localStorage.getItem('tts_voice') || '',
+    speechEnabled: localStorage.getItem('tts_enabled') !== 'false',
+
+    speak: (text: string) => {
+      const { speechRate, speechVolume, speechVoiceURI, speechEnabled } = get();
+      if (!speechEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      utterance.rate = speechRate;
+      utterance.volume = speechVolume;
+      if (speechVoiceURI) utterance.voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === speechVoiceURI) || null;
+      window.speechSynthesis.speak(utterance);
+    },
+
+    setSpeechSettings: (settings) => {
+      const updates: Partial<GameState> = {};
+      if (settings.speechRate !== undefined) {
+        updates.speechRate = settings.speechRate;
+        localStorage.setItem('tts_rate', String(settings.speechRate));
+      }
+      if (settings.speechVolume !== undefined) {
+        updates.speechVolume = settings.speechVolume;
+        localStorage.setItem('tts_volume', String(settings.speechVolume));
+      }
+      if (settings.speechVoiceURI !== undefined) {
+        updates.speechVoiceURI = settings.speechVoiceURI;
+        localStorage.setItem('tts_voice', settings.speechVoiceURI);
+      }
+      if (settings.speechEnabled !== undefined) {
+        updates.speechEnabled = settings.speechEnabled;
+        localStorage.setItem('tts_enabled', String(settings.speechEnabled));
+      }
+      set(updates);
+    },
 
     setAlert: (alert) => {
       set({ activeAlert: alert });
@@ -175,7 +235,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
       console.log('Connecting socket to:', socketUrl);
-      
+
       const socket = io(socketUrl, {
         reconnectionAttempts: 10,
         reconnectionDelay: 2000
@@ -202,6 +262,7 @@ export const useGameStore = create<GameState>((set, get) => {
           visitorTeam: data.visitorTeam,
           donors: data.donors,
           teams: data.teams || [],
+          tiktokState: data.tiktok || { connected: false, username: '', error: '', reconnecting: false, reconnectAttempt: 0 },
           isConnecting: false
         });
 
@@ -223,7 +284,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (data.localTeam !== undefined) updates.localTeam = data.localTeam;
         if (data.visitorTeam !== undefined) updates.visitorTeam = data.visitorTeam;
         if (data.donors !== undefined) updates.donors = data.donors;
-        
+
         set(updates);
 
         // Handle Time Mode ticking
@@ -248,7 +309,7 @@ export const useGameStore = create<GameState>((set, get) => {
                   get().triggerSound('whistle');
                   clearInterval(timerId);
                   timerId = null;
-                  
+
                   // Request server to end match
                   fetch(`${socketUrl}/api/settings`, {
                     method: 'POST',
@@ -285,7 +346,7 @@ export const useGameStore = create<GameState>((set, get) => {
         switch (action.type) {
           case 'gift':
             get().triggerSound('band');
-            
+
             set({
               lastDonor: {
                 username: action.username || 'Alguien',
@@ -297,18 +358,18 @@ export const useGameStore = create<GameState>((set, get) => {
 
             if (lastDonorTimerId) clearTimeout(lastDonorTimerId);
             lastDonorTimerId = setTimeout(() => set({ lastDonor: null }), 4000);
-            
+
             window.dispatchEvent(new CustomEvent('tiktok_gift', { detail: action }));
             break;
           case 'like':
             // Spawn sparks via window event for GameScene to catch
             get().triggerSound('cheer');
             window.dispatchEvent(new CustomEvent('tiktok_like', { detail: action }));
-            
+
             // Like Bar Logic
             const state = get();
             if (state.rewardTimeLeft > 0) break; // Don't accumulate while reward is active
-            
+
             const newProgress = Math.min(10000, state.likeProgress + (action.likeCount || 1));
             set({
               likeProgress: newProgress,
@@ -322,7 +383,7 @@ export const useGameStore = create<GameState>((set, get) => {
             if (newProgress >= 10000) {
               set({ likeCelebration: true, rewardTimeLeft: 120 });
               get().triggerSound('drum');
-              
+
               // Activate reward via API
               const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
               fetch(`${socketUrl}/api/settings`, {
@@ -340,7 +401,7 @@ export const useGameStore = create<GameState>((set, get) => {
                   // End of reward
                   clearInterval(rewardTimerId);
                   rewardTimerId = null;
-                  
+
                   // Disable reward
                   fetch(`${socketUrl}/api/settings`, {
                     method: 'POST',
@@ -351,7 +412,7 @@ export const useGameStore = create<GameState>((set, get) => {
                   // Cycle next reward
                   const cycle = ['event_gold_goal', 'event_multiplier', 'event_turbo'] as const;
                   const nextIndex = (cycle.indexOf(state.upcomingReward) + 1) % cycle.length;
-                  
+
                   set({
                     likeProgress: 0,
                     likeCelebration: false,
@@ -382,6 +443,7 @@ export const useGameStore = create<GameState>((set, get) => {
               details: 'es un nuevo seguidor',
               avatar: action.avatar
             });
+            get().speak(`${action.username} también quiere entrar a la cancha`);
             break;
           case 'join':
             get().setAlert({
@@ -421,6 +483,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on('donors_update', (donorsList: Donor[]) => {
         set({ donors: donorsList });
+      });
+
+      socket.on('tiktok_connection_state', (tiktokState: TikTokState) => {
+        set({ tiktokState });
       });
 
       set({ socket });

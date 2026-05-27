@@ -18,10 +18,21 @@ export class TikTokLiveService {
   private io: Server;
   private tiktokConnection: any = null;
   private activeUsername: string = '';
+  private reconnectTimer: any = null;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 15;
+  private lastError: string = '';
 
   constructor(io: Server) {
     this.io = io;
     loadTikTokConnector().catch(err => console.log("Init TikTok Live Connector:", err.message));
+  }
+
+  private emitState(overrides: Partial<ReturnType<TikTokLiveService['getConnectionState']>> = {}) {
+    this.io.emit('tiktok_connection_state', {
+      ...this.getConnectionState(),
+      ...overrides
+    });
   }
 
   // Connect to a real TikTok live stream
@@ -32,26 +43,46 @@ export class TikTokLiveService {
     }
 
     try {
+      this.clearReconnect();
+
+      // Set username BEFORE disconnecting to prevent stale disconnected event
+      this.activeUsername = username;
+
+      if (this.tiktokConnection) {
+        const oldConn = this.tiktokConnection;
+        this.tiktokConnection = null;
+        oldConn.disconnect();
+      }
+
+      this.reconnectAttempts = 0;
+      this.lastError = '';
+
+      this.createConnection(username);
+      return true;
+    } catch (error: any) {
+      console.error('TikTok Connection error:', error);
+      return false;
+    }
+  }
+
+  private createConnection(username: string) {
+    if (!TikTokConnectorClass) return;
+
+    try {
       if (this.tiktokConnection) {
         this.tiktokConnection.disconnect();
       }
 
-      this.activeUsername = username;
       this.tiktokConnection = new TikTokConnectorClass(username, {
         enableExtendedGiftInfo: true
       });
 
-      this.tiktokConnection.connect().then((state: any) => {
-        console.log(`Connected to TikTok Live stream of: ${username}`);
-        this.io.emit('tiktok_connection_state', { connected: true, username });
-      }).catch((err: any) => {
-        console.error('Failed to connect to TikTok Live:', err);
-        this.io.emit('tiktok_connection_state', { connected: false, error: err.message });
-      });
+      const connectionPromise = this.tiktokConnection.connect();
 
-      // Bind real-world events to our game pipeline
+      // Bind events BEFORE connect resolves (the connector buffers if needed)
       this.tiktokConnection.on('gift', (data: any) => {
-        console.log('GIFT RECEIVED:', data.uniqueId, data.giftName); this.handleGift({
+        console.log('GIFT RECEIVED:', data.uniqueId, data.giftName);
+        this.handleGift({
           username: data.uniqueId,
           giftName: data.giftName,
           count: data.repeatCount || 1,
@@ -60,7 +91,8 @@ export class TikTokLiveService {
       });
 
       this.tiktokConnection.on('like', (data: any) => {
-        console.log('LIKE RECEIVED:', data.uniqueId, data.likeCount); this.handleLike({
+        console.log('LIKE RECEIVED:', data.uniqueId, data.likeCount);
+        this.handleLike({
           username: data.uniqueId,
           likeCount: data.likeCount || 1,
           avatar: data.profilePictureUrl || ''
@@ -90,27 +122,121 @@ export class TikTokLiveService {
         });
       });
 
-      return true;
+      // Handle graceful disconnect (connection lost after being connected)
+      this.tiktokConnection.on('disconnected', () => {
+        console.log('TikTok Live connection lost (disconnected event)');
+        this.tiktokConnection = null;
+        this.lastError = 'disconnected';
+        this.emitState({ connected: false, error: 'disconnected', reconnecting: true });
+        this.scheduleReconnect();
+      });
+
+      // Handle stream end (broadcaster stopped streaming)
+      if (this.tiktokConnection.on) {
+        this.tiktokConnection.on('streamEnd', () => {
+          console.log('TikTok Live stream ended');
+          this.tiktokConnection = null;
+          this.lastError = 'stream_ended';
+          this.emitState({ connected: false, error: 'stream_ended', reconnecting: false });
+          // Try a few times in case they go live again
+          if (this.reconnectAttempts < 3) {
+            this.scheduleReconnect();
+          }
+        });
+      }
+
+      connectionPromise.then(() => {
+        console.log(`Connected to TikTok Live stream of: ${username}`);
+        this.reconnectAttempts = 0;
+        this.lastError = '';
+        this.emitState({ connected: true, error: '', reconnecting: false });
+      }).catch((err: any) => {
+        console.error('Failed to connect to TikTok Live:', err);
+        const errorMsg = err?.message || err?.toString() || 'Error desconocido';
+        this.lastError = errorMsg;
+        this.tiktokConnection = null;
+
+        const isOffline = /offline|stream ended|no live|not found|no stream|ended/i.test(errorMsg);
+
+        this.emitState({
+          connected: false,
+          error: isOffline ? 'offline' : errorMsg,
+          reconnecting: false
+        });
+
+        // Retry a few times for transient errors, stop for offline
+        if (!isOffline && this.reconnectAttempts < 5) {
+          this.scheduleReconnect();
+        }
+      });
+
     } catch (error: any) {
-      console.error('TikTok Connection error:', error);
-      return false;
+      console.error('Error creating TikTok connection:', error);
+      this.tiktokConnection = null;
+    }
+  }
+
+  private scheduleReconnect() {
+    this.clearReconnect();
+
+    if (!this.activeUsername) return;
+    if (this.tiktokConnection) return; // Already have a connection, no need to reconnect
+
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnect attempts reached for TikTok');
+      this.lastError = 'max_reconnect';
+      this.emitState({ connected: false, error: 'max_reconnect', reconnecting: false });
+      return;
+    }
+
+    const delay = Math.min(5000 * Math.pow(1.5, this.reconnectAttempts), 30000);
+    this.reconnectAttempts++;
+
+    console.log(`Scheduling TikTok reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${Math.round(delay)}ms`);
+    this.emitState({
+      connected: false,
+      error: '',
+      reconnecting: true,
+      reconnectAttempt: this.reconnectAttempts
+    });
+
+    this.reconnectTimer = setTimeout(() => {
+      if (this.activeUsername) {
+        console.log(`Attempting TikTok reconnect #${this.reconnectAttempts} for @${this.activeUsername}`);
+        this.createConnection(this.activeUsername);
+      }
+    }, delay);
+  }
+
+  private clearReconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
   }
 
   public disconnect() {
+    this.clearReconnect();
+    // Clear username BEFORE disconnecting so disconnected event won't trigger reconnect
+    this.activeUsername = '';
     if (this.tiktokConnection) {
-      this.tiktokConnection.disconnect();
+      const oldConn = this.tiktokConnection;
       this.tiktokConnection = null;
-      this.activeUsername = '';
-      this.io.emit('tiktok_connection_state', { connected: false, username: '' });
-      console.log('Disconnected from TikTok Live.');
+      oldConn.disconnect();
     }
+    this.reconnectAttempts = 0;
+    this.lastError = '';
+    this.emitState({ connected: false, username: '', error: '', reconnecting: false });
+    console.log('Disconnected from TikTok Live.');
   }
 
   public getConnectionState() {
     return {
       connected: !!this.tiktokConnection,
-      username: this.activeUsername
+      username: this.activeUsername,
+      error: this.lastError,
+      reconnecting: !this.tiktokConnection && !!this.reconnectTimer,
+      reconnectAttempt: this.reconnectAttempts
     };
   }
 
@@ -282,8 +408,7 @@ export class TikTokLiveService {
     const matchStateRow = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
     if (!matchStateRow || matchStateRow.value !== 'playing') return;
 
-    // Follow gives a flat boost (+5 diamonds)
-    const bonus = 5;
+    // Follow does NOT advance the ball - just registers the donor
     const teamIdRow = await db.get("SELECT value FROM settings WHERE key = 'local_team_id'");
     const teamId = teamIdRow?.value || 'ARG';
 
@@ -292,17 +417,11 @@ export class TikTokLiveService {
       VALUES (?, ?, ?, ?)
       ON CONFLICT(username) DO UPDATE SET
         diamonds = diamonds + excluded.diamonds
-    `, [event.username, bonus, teamId, event.avatar]);
-
-    const progressRow = await db.get("SELECT value FROM settings WHERE key = 'ball_progress'");
-    let progress = parseInt(progressRow?.value || '0', 10);
-    progress += bonus; // Always default to local for follow, or last
-    await db.run("UPDATE settings SET value = ? WHERE key = 'ball_progress'", [progress.toString()]);
+    `, [event.username, 0, teamId, event.avatar]);
 
     this.io.emit('game_action', {
       type: 'follow',
       username: event.username,
-      progress,
       avatar: event.avatar
     });
 

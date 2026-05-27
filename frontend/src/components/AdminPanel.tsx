@@ -34,7 +34,6 @@ export const AdminPanel: React.FC = () => {
   const [matchLimit, setMatchLimit] = useState(3);
   const [volume, setVolume] = useState(0.5);
   const [tiktokUser, setTiktokUser] = useState('');
-  const [tiktokState, setTiktokState] = useState({ connected: false, username: '' });
   
   // Custom Gift Valuations Table State
   const [giftList, setGiftList] = useState<{ name: string; value: number; team: 'local' | 'visitor'; icon: string }[]>([]);
@@ -46,7 +45,17 @@ export const AdminPanel: React.FC = () => {
   const [simUser, setSimUser] = useState('Hincha_Futbol');
   const [simLikeCount, setSimLikeCount] = useState(10);
 
-  const { initSocket, settings, teams, matchState, isConnected } = useGameStore();
+  const { initSocket, settings, teams, matchState, isConnected, tiktokState, speechRate, speechVolume, speechVoiceURI, speechEnabled, speak, setSpeechSettings } = useGameStore();
+
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const updateVoices = () => setVoices(window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('es')));
+    updateVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
+  }, []);
 
   const API_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
 
@@ -119,8 +128,7 @@ export const AdminPanel: React.FC = () => {
       const res = await fetch(`${API_URL}/api/settings`);
       const data = await res.json();
       if (data.success) {
-        setTiktokState(data.tiktok);
-        if (data.tiktok.username) {
+        if (data.tiktok.username && !tiktokUser) {
           setTiktokUser(data.tiktok.username);
         }
       }
@@ -355,15 +363,104 @@ export const AdminPanel: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs">
-                  <span className={`h-2 w-2 rounded-full ${tiktokState.connected ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`}></span>
+                  <span className={`h-2 w-2 rounded-full ${
+                    tiktokState.connected ? 'bg-green-500 animate-pulse' :
+                    tiktokState.reconnecting ? 'bg-yellow-400 animate-pulse' :
+                    tiktokState.error === 'offline' ? 'bg-red-500' :
+                    tiktokState.error === 'stream_ended' ? 'bg-orange-500' :
+                    tiktokState.error ? 'bg-red-500' :
+                    'bg-slate-600'
+                  }`}></span>
                   <span className="text-slate-400">
-                    Live TikTok: {tiktokState.connected ? `Transmitiendo como @${tiktokState.username}` : 'No conectado'}
+                    {tiktokState.connected ? `Transmitiendo como @${tiktokState.username}` :
+                     tiktokState.reconnecting ? `Reconectando... (${tiktokState.reconnectAttempt})` :
+                     tiktokState.error === 'offline' ? `@${tiktokState.username} no está en vivo` :
+                     tiktokState.error === 'stream_ended' ? 'Stream finalizado' :
+                     tiktokState.error === 'disconnected' ? 'Conexión perdida' :
+                     tiktokState.error === 'max_reconnect' ? 'Conexión perdida - Máx. reintentos' :
+                     tiktokState.error ? `Error: ${tiktokState.error.slice(0, 40)}` :
+                     'No conectado'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* 2. Volume and Config Settings */}
+            {/* 2. Speech / TTS Control */}
+            <div className="glass-card rounded-2xl border border-white/5 p-6 space-y-4">
+              <div className="flex items-center gap-2 text-amber-500 mb-2">
+                <Volume2 className="h-5 w-5" />
+                <h2 className="font-sports text-sm uppercase tracking-wider text-slate-200">Control de Voz</h2>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Voz activa</label>
+                  <button
+                    onClick={() => setSpeechSettings({ speechEnabled: !speechEnabled })}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${speechEnabled ? 'bg-green-600' : 'bg-slate-700'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${speechEnabled ? 'translate-x-6' : ''}`} />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                    <span>Velocidad</span>
+                    <span className="text-amber-500">{speechRate.toFixed(1)}x</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0.3"
+                    max="2"
+                    step="0.1"
+                    value={speechRate}
+                    onChange={(e) => setSpeechSettings({ speechRate: parseFloat(e.target.value) })}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                    <span>Volumen</span>
+                    <span className="text-amber-500">{Math.round(speechVolume * 100)}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={speechVolume}
+                    onChange={(e) => setSpeechSettings({ speechVolume: parseFloat(e.target.value) })}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                    Voz
+                  </label>
+                  <select
+                    value={speechVoiceURI}
+                    onChange={(e) => setSpeechSettings({ speechVoiceURI: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-100 font-bold"
+                  >
+                    <option value="">Voz por defecto</option>
+                    {voices.map(v => (
+                      <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => speak('Hola, esto es una prueba de voz')}
+                  className="w-full bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 border border-amber-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all"
+                >
+                  Probar Voz
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Volume and Config Settings */}
             <div className="glass-card rounded-2xl border border-white/5 p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-500 mb-2">
                 <Settings className="h-5 w-5" />
@@ -675,7 +772,7 @@ export const AdminPanel: React.FC = () => {
           {/* Column Center: Match Actions & Live Simulator */}
           <div className="space-y-6 lg:col-span-2">
             
-            {/* 3. Match Play Controls */}
+            {/* 4. Match Play Controls */}
             <div className="glass-card rounded-2xl border border-white/5 p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-amber-500">
@@ -720,7 +817,7 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Special Event Boost Activators */}
+            {/* 5. Special Event Boost Activators */}
             <div className="glass-card rounded-2xl border border-white/5 p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-500">
                 <Zap className="h-5 w-5" />
@@ -794,7 +891,7 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* 5. Real-Time TikTok Live Events Simulator */}
+            {/* 6. Real-Time TikTok Live Events Simulator */}
             <div className="glass-card rounded-2xl border border-amber-500/10 p-6 relative overflow-hidden bg-slate-900/30">
               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-amber-500/10 via-amber-500/50 to-amber-500/10"></div>
               
@@ -943,7 +1040,7 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* 6. Editable Gifts to Diamonds Table */}
+            {/* 7. Editable Gifts to Diamonds Table */}
             <div className="glass-card rounded-2xl border border-white/5 p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-500">
                 <Settings className="h-5 w-5" />

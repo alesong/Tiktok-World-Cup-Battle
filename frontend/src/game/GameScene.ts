@@ -21,6 +21,12 @@ export class GameScene extends Phaser.Scene {
   private ballRotation = 0;
   private lastGrassSoundTime = 0;
 
+  // Random vertical wandering (players + ball)
+  private playerLocalYTarget = 0;
+  private playerVisitorYTarget = 0;
+  private ballYTarget = 0;
+  private lastYChangeTime = 0;
+
   // Particle emitters for celebrations
   private confettiParticles: any[] = [];
   private fireworkParticles: any[] = [];
@@ -131,8 +137,24 @@ export class GameScene extends Phaser.Scene {
     
     // Bounce amplitude up to 22px
     const bounceHeight = Math.abs(Math.sin(this.ballBouncePhase)) * -22 * (speed > 1 ? 1.5 : 1);
+
+    // Random vertical wander for players + ball when playing
+    if (matchState === 'playing') {
+      if (time - this.lastYChangeTime > Phaser.Math.Between(1500, 4000)) {
+        this.lastYChangeTime = time;
+        const range = 220;
+        this.playerLocalYTarget = Phaser.Math.Between(-range, range);
+        this.playerVisitorYTarget = Phaser.Math.Between(-range, range);
+        this.ballYTarget = Phaser.Math.Between(-range, range);
+      }
+    } else if (matchState === 'idle' || matchState === 'finished') {
+      this.playerLocalYTarget = 0;
+      this.playerVisitorYTarget = 0;
+      this.ballYTarget = 0;
+    }
+
     this.ball.x = this.currentBallX;
-    this.ball.y = this.centerY + bounceHeight;
+    this.ball.y = Phaser.Math.Linear(this.ball.y, this.centerY + this.ballYTarget + bounceHeight, 0.015);
 
     // 3. Spin the ball according to velocity direction
     this.ballRotation += (this.currentBallX - prevX) * 0.15;
@@ -411,8 +433,8 @@ export class GameScene extends Phaser.Scene {
     const localBob = Math.sin(runCycle * 2) * bounceAmp;
     const visitorBob = Math.cos(runCycle * 2) * bounceAmp;
 
-    this.playerLocal.y = this.centerY + localBob;
-    this.playerVisitor.y = this.centerY + visitorBob;
+    this.playerLocal.y = Phaser.Math.Linear(this.playerLocal.y, this.centerY + this.playerLocalYTarget + localBob, 0.04);
+    this.playerVisitor.y = Phaser.Math.Linear(this.playerVisitor.y, this.centerY + this.playerVisitorYTarget + visitorBob, 0.04);
 
     // Draw Legs swing
     const drawLegs = (player: Phaser.GameObjects.Container, cycle: number) => {

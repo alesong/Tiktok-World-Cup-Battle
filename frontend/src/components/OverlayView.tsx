@@ -299,9 +299,9 @@ export const OverlayView: React.FC = () => {
         {lastDonor && (
           <div className="flex flex-col items-center gap-4 bg-slate-900/95 px-12 py-8 rounded-3xl border-2 border-cyan-400 shadow-[0_0_60px_rgba(6,182,212,0.6)]">
             <img src={lastDonor.avatar} alt="avatar" className="w-28 h-28 rounded-full border-4 border-cyan-400 shadow-xl" />
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-4xl font-black text-white">{lastDonor.username}</span>
-              <span className="text-2xl font-bold text-cyan-400 uppercase tracking-widest">¡Envió una Donación!</span>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-4xl font-black text-white text-center">{lastDonor.username}</span>
+              <span className="text-2xl font-bold text-cyan-400 uppercase tracking-widest text-center">¡Está jugando en la cancha!</span>
             </div>
             <Sparkles className="w-14 h-14 text-cyan-400 fill-cyan-400 animate-spin-slow" />
           </div>
