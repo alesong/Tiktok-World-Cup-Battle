@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { globalSoundSynth } from '../audio/SoundSynth.js';
-import { Trophy, Star, Zap, Sparkles, Heart, Award } from 'lucide-react';
+import { Trophy, Zap, Sparkles, Heart, Award } from 'lucide-react';
 import Phaser from 'phaser';
 import { GameScene } from '../game/GameScene.js';
 

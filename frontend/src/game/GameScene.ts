@@ -565,7 +565,6 @@ export class GameScene extends Phaser.Scene {
   private giftParticles: any[] = [];
 
   private triggerGiftCelebration(action: any) {
-    const store = useGameStore.getState();
     let diamonds = action.diamondCount || action.diamonds || 1;
     let team = action.teamSide || 'local'; // Uses backend's properly calculated teamSide
     
