@@ -66,6 +66,7 @@ export const AdminPanel: React.FC = () => {
   const [matchMode, setMatchMode] = useState('goals');
   const [matchLimit, setMatchLimit] = useState(3);
   const [volume, setVolume] = useState(0.5);
+  const [giftCardScale, setGiftCardScale] = useState(100);
   const [tiktokUser, setTiktokUser] = useState('');
   
   // Custom Gift Valuations Table State
@@ -112,6 +113,7 @@ export const AdminPanel: React.FC = () => {
       setMatchMode(settings.match_mode || 'goals');
       setMatchLimit(parseInt(settings.match_limit || '3', 10));
       setVolume(parseFloat(settings.volume || '0.5'));
+      setGiftCardScale(parseInt(settings.gift_card_scale || '100', 10));
       
       if (settings.gift_values) {
         try {
@@ -1151,11 +1153,15 @@ export const AdminPanel: React.FC = () => {
                     min="50"
                     max="200"
                     step="5"
-                    value={settings.gift_card_scale || '100'}
-                    onChange={(e) => handleFieldChange('gift_card_scale', e.target.value)}
+                    value={giftCardScale}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setGiftCardScale(val);
+                      handleFieldChange('gift_card_scale', val);
+                    }}
                     className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
                   />
-                  <span className="font-bold text-amber-500 min-w-[3ch] text-right">{settings.gift_card_scale || '100'}%</span>
+                  <span className="font-bold text-amber-500 min-w-[3ch] text-right">{giftCardScale}%</span>
                 </div>
 
                 {/* Table grid */}
