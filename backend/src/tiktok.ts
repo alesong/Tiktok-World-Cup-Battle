@@ -489,6 +489,9 @@ export class TikTokLiveService {
           if (localScoreVal >= limit || visitorScoreVal >= limit) {
             isMatchOver = true;
           }
+        } else if (mode === 'time') {
+          // In time mode, only the timer can end the match, not goals
+          isMatchOver = false;
         }
 
         if (isMatchOver) {
@@ -496,11 +499,13 @@ export class TikTokLiveService {
         } else {
           // Resume playing
           await db.run("UPDATE settings SET value = 'playing' WHERE key = 'match_state'");
+          const freshSettings = await this.getAllSettings();
           this.io.emit('game_state_update', {
             matchState: 'playing',
             ballProgress: 0,
             localScore: localScoreVal,
-            visitorScore: visitorScoreVal
+            visitorScore: visitorScoreVal,
+            settings: freshSettings
           });
         }
       } catch (err) {
@@ -548,6 +553,15 @@ export class TikTokLiveService {
         teamId: mvp.teamId
       } : null
     });
+  }
+
+  private async getAllSettings() {
+    const rows = await db.all('SELECT * FROM settings');
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
   }
 
   public async broadcastDonors() {

@@ -84,7 +84,7 @@ export const initDb = async () => {
     { key: 'goal_distance_diamonds', value: '200' },
     { key: 'goal_distance_pixels', value: '600' },
     { key: 'match_mode', value: 'goals' }, // goals, time, diamonds
-    { key: 'match_limit', value: '3' }, // 3 goals, or 300 seconds (5 min), or 50000 diamonds
+    { key: 'match_limit', value: '3' }, // 3 goals, or 3 minutes (time mode)
     { key: 'volume', value: '0.5' },
     { key: 'event_multiplier', value: '1' }, // 1 or 2
     { key: 'event_gold_goal', value: 'false' },

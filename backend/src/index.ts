@@ -119,6 +119,8 @@ app.post('/api/match/control', async (req, res) => {
     } else if (action === 'pause') {
       await db.run("UPDATE settings SET value = 'idle' WHERE key = 'match_state'");
       io.emit('game_action', { type: 'match_paused' });
+    } else if (action === 'finish') {
+      await tiktokService.endMatch();
     } else if (action === 'reset') {
       // Clear donors for a fresh match
       await db.run("DELETE FROM donors");

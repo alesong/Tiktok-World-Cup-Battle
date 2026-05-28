@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export interface Team {
   id: string;
   name: string;
@@ -157,7 +159,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     teams: [],
     activeAlert: null,
-    timeLeft: 600, // 10 minutes default
+    timeLeft: 300, // 5 minutes default (overridden by init_state)
     isConnecting: true,
     isConnected: false,
     socket: null,
@@ -234,10 +236,9 @@ export const useGameStore = create<GameState>((set, get) => {
 
       set({ isConnecting: true });
 
-      const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-      console.log('Connecting socket to:', socketUrl);
+      console.log('Connecting socket to:', API_BASE_URL);
 
-      const socket = io(socketUrl, {
+      const socket = io(API_BASE_URL, {
         reconnectionAttempts: 10,
         reconnectionDelay: 2000
       });
@@ -267,10 +268,10 @@ export const useGameStore = create<GameState>((set, get) => {
           isConnecting: false
         });
 
-        // Initialize clock if match_mode is time
+        // Initialize clock if match_mode is time (match_limit is in minutes)
         if (data.settings.match_mode === 'time') {
-          const limitSeconds = parseInt(data.settings.match_limit || '600', 10);
-          set({ timeLeft: limitSeconds });
+          const limitMinutes = parseInt(data.settings.match_limit || '10', 10);
+          set({ timeLeft: limitMinutes * 60 });
         }
       });
 
@@ -289,7 +290,7 @@ export const useGameStore = create<GameState>((set, get) => {
         set(updates);
 
         // Handle Time Mode ticking
-        if (data.matchState === 'playing' && data.settings.match_mode === 'time') {
+        if (data.matchState === 'playing' && data.settings?.match_mode === 'time') {
           if (!timerId) {
             timerId = setInterval(() => {
               const current = get().timeLeft;
@@ -311,18 +312,11 @@ export const useGameStore = create<GameState>((set, get) => {
                   clearInterval(timerId);
                   timerId = null;
 
-                  // Request server to end match
-                  fetch(`${socketUrl}/api/settings`, {
+                  // Request server to end match via proper endpoint
+                  fetch(`${API_BASE_URL}/api/match/control`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ match_state: 'finished' })
-                  }).then(() => {
-                    // Call end match explicitly
-                    fetch(`${socketUrl}/api/simulate`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ type: 'match_end' }) // triggers backend evaluation
-                    }).catch(console.error);
+                    body: JSON.stringify({ action: 'finish' })
                   }).catch(console.error);
                 }
               } else if (state !== 'playing') {
@@ -386,8 +380,7 @@ export const useGameStore = create<GameState>((set, get) => {
               get().triggerSound('drum');
 
               // Activate reward via API
-              const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-              fetch(`${socketUrl}/api/settings`, {
+              fetch(`${API_BASE_URL}/api/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [state.upcomingReward]: state.upcomingReward === 'event_multiplier' ? '2' : 'true' })
@@ -404,7 +397,7 @@ export const useGameStore = create<GameState>((set, get) => {
                   rewardTimerId = null;
 
                   // Disable reward
-                  fetch(`${socketUrl}/api/settings`, {
+                  fetch(`${API_BASE_URL}/api/settings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ [state.upcomingReward]: state.upcomingReward === 'event_multiplier' ? '1' : 'false' })
@@ -474,10 +467,15 @@ export const useGameStore = create<GameState>((set, get) => {
           case 'match_finished':
             get().triggerSound('whistle');
             get().triggerSound('win');
+            set({ matchState: 'finished' });
+            if (timerId) {
+              clearInterval(timerId);
+              timerId = null;
+            }
             break;
           case 'match_reset':
-            // Recalibrate
-            set({ timeLeft: parseInt(get().settings.match_limit || '600', 10) });
+            // Recalibrate (match_limit is in minutes)
+            set({ timeLeft: parseInt(get().settings.match_limit || '10', 10) * 60 });
             break;
         }
       });

@@ -23,6 +23,21 @@ La aplicación se divide de forma estricta en dos módulos para optimizar el ren
 
 ---
 
+## ☁️ Despliegue en Vercel (Frontend) + Railway (Backend)
+
+Consulta la guía completa en [`DEPLOY.md`](./DEPLOY.md).
+
+Para desplegar el frontend en Vercel:
+1. Conecta tu repositorio en [Vercel](https://vercel.com)
+2. Agrega la variable de entorno `VITE_API_URL` con la URL de tu backend
+3. Vercel usa el `vercel.json` del proyecto automáticamente
+
+Para el backend (requiere WebSockets), usa [Railway](https://railway.app) o [Render](https://render.com):
+- Root Directory: `backend`
+- Start Command: `npm run build && node dist/index.js`
+
+---
+
 ## 📋 Guía 1: Instalación de Dependencias en Ubuntu
 
 Sigue estos comandos paso a paso para configurar tu entorno en un servidor local o servidor de desarrollo con **Ubuntu 20.04 / 22.04 / 24.04 LTS**:
