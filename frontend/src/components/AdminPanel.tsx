@@ -1075,8 +1075,8 @@ export const AdminPanel: React.FC = () => {
                       }}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none"
                     >
-                      {TIKTOK_GIFTS.map(g => (
-                        <option key={g.name} value={g.name}>{g.icon} {g.name}</option>
+                      {TIKTOK_GIFTS.filter(g => g.defaultPrice < 501).map(g => (
+                        <option key={g.name} value={g.name}>{g.icon} {g.name} ({g.defaultPrice}💎)</option>
                       ))}
                     </select>
                   </div>
@@ -1109,7 +1109,7 @@ export const AdminPanel: React.FC = () => {
                 </div>
 
                 {/* Table grid */}
-                <div className="max-h-[170px] overflow-y-auto border border-slate-800 rounded-lg">
+                <div className="max-h-[350px] overflow-y-auto border border-slate-800 rounded-lg">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[9px]">
