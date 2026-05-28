@@ -292,7 +292,7 @@ export const OverlayView: React.FC = () => {
                     >
                       <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
                       <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
+                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">←</div>
                     </div>
                   );
                 })}
