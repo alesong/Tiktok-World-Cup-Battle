@@ -89,9 +89,11 @@ export const AdminPanel: React.FC = () => {
   const [pingStatus, setPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [pingLatency, setPingLatency] = useState<number | null>(null);
   const [pingTime, setPingTime] = useState<string>('');
+  const [pingCountdown, setPingCountdown] = useState(0);
 
   const doPing = async () => {
     const start = Date.now();
+    setPingCountdown(600);
     try {
       const res = await fetch(`${API_URL}/api/ping`);
       const data = await res.json();
@@ -114,6 +116,14 @@ export const AdminPanel: React.FC = () => {
     const interval = setInterval(doPing, 600000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (pingCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setPingCountdown(prev => Math.max(prev - 1, 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [pingCountdown]);
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -390,10 +400,13 @@ export const AdminPanel: React.FC = () => {
                 Socket: {isConnected ? 'Sincronizado' : 'Desconectado'}
               </span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700" title={`${API_URL}/api/ping`}>
               <span className={`h-2.5 w-2.5 rounded-full ${pingStatus === 'success' ? 'bg-green-500' : pingStatus === 'error' ? 'bg-red-500' : 'bg-slate-500'}`}></span>
               <span className="text-xs font-semibold text-slate-300">
                 Ping: {pingStatus === 'success' ? `${pingLatency}ms` : pingStatus === 'error' ? 'Falló' : '...'}
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {Math.floor(pingCountdown / 60)}:{(pingCountdown % 60).toString().padStart(2, '0')}
               </span>
               {pingTime && <span className="text-[10px] text-slate-500">{pingTime}</span>}
             </div>
