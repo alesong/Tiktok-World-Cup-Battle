@@ -4,3 +4,4 @@ dist/
 .env*.local
 *.sqlite
 .DS_Store
+.vercel
