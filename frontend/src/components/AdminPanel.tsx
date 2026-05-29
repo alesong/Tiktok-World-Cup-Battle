@@ -208,7 +208,19 @@ export const AdminPanel: React.FC = () => {
       const res = await fetch(`${API_URL}/api/settings`);
       const data = await res.json();
       if (data.success) {
-        if (data.tiktok.username && !tiktokUser) {
+        useGameStore.setState({
+          settings: data.settings,
+          teams: data.teams || [],
+          localTeam: data.teams?.find((t: any) => t.id === data.settings.local_team_id) || null,
+          visitorTeam: data.teams?.find((t: any) => t.id === data.settings.visitor_team_id) || null,
+          donors: data.donors || [],
+          matchState: data.settings.match_state || 'idle',
+          ballProgress: parseInt(data.settings.ball_progress || '0', 10),
+          localScore: parseInt(data.settings.local_score || '0', 10),
+          visitorScore: parseInt(data.settings.visitor_score || '0', 10),
+          tiktokState: data.tiktok || { connected: false, username: '', error: '', reconnecting: false, reconnectAttempt: 0 }
+        });
+        if (data.tiktok?.username) {
           setTiktokUser(data.tiktok.username);
         }
       }
