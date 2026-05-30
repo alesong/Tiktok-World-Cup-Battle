@@ -240,6 +240,13 @@ export const useGameStore = create<GameState>((set, get) => {
       const existingSocket = get().socket;
       if (existingSocket?.connected) return;
 
+      const prevHandlers = (window as any).__socketVisibilityHandlers;
+      if (prevHandlers) {
+        document.removeEventListener('visibilitychange', prevHandlers.visibility);
+        window.removeEventListener('focus', prevHandlers.focus);
+        delete (window as any).__socketVisibilityHandlers;
+      }
+
       if (existingSocket) {
         existingSocket.removeAllListeners();
         existingSocket.disconnect();
@@ -252,7 +259,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const socket = io(API_BASE_URL, {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
-        reconnectionDelayMax: 10000
+        reconnectionDelayMax: 10000,
+        transports: ['websocket']
       });
 
       socket.on('connect', () => {
@@ -503,6 +511,32 @@ export const useGameStore = create<GameState>((set, get) => {
       socket.on('tiktok_connection_state', (tiktokState: TikTokState) => {
         set({ tiktokState });
       });
+
+      const onVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          const s = get().socket;
+          if (s && !s.connected) {
+            console.log('Tab visible again, reconnecting socket...');
+            s.connect();
+          }
+        }
+      };
+
+      const onWindowFocus = () => {
+        const s = get().socket;
+        if (s && !s.connected) {
+          console.log('Window focused, reconnecting socket...');
+          s.connect();
+        }
+      };
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      window.addEventListener('focus', onWindowFocus);
+
+      (window as any).__socketVisibilityHandlers = {
+        visibility: onVisibilityChange,
+        focus: onWindowFocus
+      };
 
       set({ socket });
     }

@@ -17,7 +17,9 @@ const io = new Server(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  pingTimeout: 120000,
+  pingInterval: 30000
 });
 
 const tiktokService = new TikTokLiveService(io);
