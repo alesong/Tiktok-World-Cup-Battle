@@ -113,31 +113,38 @@ app.post('/api/match/control', async (req, res) => {
   try {
     const { action } = req.body;
 
+    const upsertSetting = (key: string, value: string) =>
+      prisma.twcSetting.upsert({
+        where: { key },
+        create: { key, value },
+        update: { value },
+      });
+
     if (action === 'start') {
-      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'playing' } });
+      await upsertSetting('match_state', 'playing');
       io.emit('game_action', { type: 'match_started' });
     } else if (action === 'pause') {
-      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
+      await upsertSetting('match_state', 'idle');
       io.emit('game_action', { type: 'match_paused' });
     } else if (action === 'finish') {
       await tiktokService.endMatch();
     } else if (action === 'reset') {
       await prisma.twcDonor.deleteMany({ where: { username: { not: '' } } });
-      await prisma.twcSetting.update({ where: { key: 'local_score' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'visitor_score' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'ball_progress' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
-      await prisma.twcSetting.update({ where: { key: 'event_multiplier' }, data: { value: '1' } });
-      await prisma.twcSetting.update({ where: { key: 'event_gold_goal' }, data: { value: 'false' } });
-      await prisma.twcSetting.update({ where: { key: 'event_penalty' }, data: { value: 'none' } });
-      await prisma.twcSetting.update({ where: { key: 'event_turbo' }, data: { value: 'false' } });
+      await upsertSetting('local_score', '0');
+      await upsertSetting('visitor_score', '0');
+      await upsertSetting('ball_progress', '0');
+      await upsertSetting('match_state', 'idle');
+      await upsertSetting('event_multiplier', '1');
+      await upsertSetting('event_gold_goal', 'false');
+      await upsertSetting('event_penalty', 'none');
+      await upsertSetting('event_turbo', 'false');
 
       io.emit('game_action', { type: 'match_reset' });
     } else if (action === 'reset-scores') {
-      await prisma.twcSetting.update({ where: { key: 'local_score' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'visitor_score' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'ball_progress' }, data: { value: '0' } });
-      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
+      await upsertSetting('local_score', '0');
+      await upsertSetting('visitor_score', '0');
+      await upsertSetting('ball_progress', '0');
+      await upsertSetting('match_state', 'idle');
 
       io.emit('game_action', { type: 'match_reset_scores' });
     }

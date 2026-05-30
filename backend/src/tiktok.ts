@@ -19,7 +19,11 @@ async function getSettingValue(key: string): Promise<string | null> {
 }
 
 async function updateSetting(key: string, value: string) {
-  await prisma.twcSetting.update({ where: { key }, data: { value } });
+  await prisma.twcSetting.upsert({
+    where: { key },
+    create: { key, value },
+    update: { value },
+  });
 }
 
 export class TikTokLiveService {
