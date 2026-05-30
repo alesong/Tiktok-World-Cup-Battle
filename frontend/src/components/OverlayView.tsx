@@ -77,6 +77,7 @@ export const OverlayView: React.FC = () => {
 
   const resolution = settings.overlay_resolution || '1920x1080';
   const isVertical = resolution === '1080x1920';
+  const scale = parseInt(resolution.split('x')[0], 10) / 1920;
 
   // Parse gifts from settings
   let giftListLocal: any[] = [];
@@ -185,54 +186,70 @@ export const OverlayView: React.FC = () => {
         {/* 1. TOP HUD CONTAINER (Scoreboard + Gifts + Donors) */}
         <div className="w-full flex flex-col items-center">
           {/* SCOREBOARD */}
-          <div className="w-full flex justify-center items-start">
-            <div className="relative glass-card flex items-center justify-between px-8 py-3 rounded-full border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] min-w-[760px] h-20 overflow-hidden">
+          <div className="w-full flex justify-center items-start px-[2vw]">
+            <div
+              className="relative glass-card flex items-center justify-between rounded-full border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] overflow-hidden"
+              style={{
+                padding: `${0.83 * scale}vw ${1.67 * scale}vw`,
+                minHeight: `${4.17 * scale}vw`,
+                width: `${isVertical ? 95 : 92}%`
+              }}
+            >
               {/* Glossy overlay background */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
 
               {/* Local Team Info */}
-              <div className="flex items-center gap-4 w-1/3 justify-end">
-                <span className="font-sports font-extrabold text-xl uppercase tracking-wider text-slate-100 truncate">
+              <div className="flex items-center w-1/3 justify-end" style={{ gap: `${0.83 * scale}vw` }}>
+                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale}vw` }}>
                   {localTeam?.name || 'ARGENTINA'}
                 </span>
-                <div className="h-12 w-12 rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center text-3xl select-none select-none">
+                <div
+                  className="rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center select-none"
+                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale}vw` }}
+                >
                   {localTeam?.flag || '🇦🇷'}
                 </div>
               </div>
 
               {/* Scores & Clock */}
-              <div className="flex items-center gap-6 justify-center w-1/3 z-10 px-4">
-                <span className="font-sports font-black text-4xl text-neon-green text-green-400 min-w-[45px] text-right">
+              <div className="flex items-center justify-center w-1/3 z-10" style={{ gap: `${1.25 * scale}vw`, padding: `0 ${1 * scale}vw` }}>
+                <span className="font-sports font-black text-neon-green text-green-400 text-right" style={{ fontSize: `${2.08 * scale}vw`, minWidth: `${2.34 * scale}vw` }}>
                   {localScore}
                 </span>
 
                 {/* Timer clock HUD */}
-                <div className="flex flex-col items-center justify-center bg-slate-950/80 px-4 py-1.5 rounded-xl border border-white/5 shadow-inner">
-                  <span className="font-sports font-bold text-lg text-slate-300 tracking-wider">
+                <div
+                  className="flex flex-col items-center justify-center bg-slate-950/80 rounded-xl border border-white/5 shadow-inner"
+                  style={{ padding: `${0.31 * scale}vw ${0.83 * scale}vw` }}
+                >
+                  <span className="font-sports font-bold text-slate-300 tracking-wider" style={{ fontSize: `${0.94 * scale}vw` }}>
                     {settings.match_mode === 'time' ? formatTime(timeLeft) : 'LIVE'}
                   </span>
-                  <span className="text-[9px] uppercase tracking-widest text-amber-500 font-extrabold text-neon-gold">
+                  <span className="uppercase tracking-widest text-amber-500 font-extrabold text-neon-gold" style={{ fontSize: `${0.47 * scale}vw` }}>
                     BATTLE
                   </span>
                 </div>
 
-                <span className="font-sports font-black text-4xl text-neon-red text-red-500 min-w-[45px] text-left">
+                <span className="font-sports font-black text-neon-red text-red-500 text-left" style={{ fontSize: `${2.08 * scale}vw`, minWidth: `${2.34 * scale}vw` }}>
                   {visitorScore}
                 </span>
               </div>
 
               {/* Visitor Team Info */}
-              <div className="flex items-center gap-4 w-1/3 justify-start">
-                <div className="h-12 w-12 rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center text-3xl select-none select-none">
+              <div className="flex items-center w-1/3 justify-start" style={{ gap: `${0.83 * scale}vw` }}>
+                <div
+                  className="rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center select-none"
+                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale}vw` }}
+                >
                   {visitorTeam?.flag || '🇧🇷'}
                 </div>
-                <span className="font-sports font-extrabold text-xl uppercase tracking-wider text-slate-100 truncate">
+                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale}vw` }}>
                   {visitorTeam?.name || 'BRASIL'}
                 </span>
               </div>
 
               {/* Progress indicators at bottom edge of scoreboard */}
-              <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-slate-950/70">
+              <div className="absolute bottom-0 left-0 right-0 bg-slate-950/70" style={{ height: `${0.26 * scale}vw` }}>
                 <div
                   className="h-full bg-gradient-to-r from-green-500 via-yellow-400 to-red-500 transition-all duration-300"
                   style={{ width: `${fillPercent}%` }}
@@ -242,22 +259,22 @@ export const OverlayView: React.FC = () => {
           </div>
 
           {/* GIFTS AND DONORS HUD */}
-          <div className="w-full max-w-[1800px] flex justify-between items-start mt-4 px-12 pointer-events-none">
+          <div className={`w-full flex pointer-events-none ${isVertical ? 'flex-col items-center gap-[1.5vw]' : 'flex-row justify-between items-start'} ${isVertical ? '' : 'px-[2.5vw]'}`} style={{ marginTop: `${0.83 * scale}vw` }}>
             {/* LOCAL SIDE */}
-            <div className="flex flex-col gap-3 items-start w-[450px]">
+            <div className={`flex flex-col ${isVertical ? 'w-full items-center' : 'items-start'}`} style={{ gap: `${0.63 * scale}vw`, width: isVertical ? '100%' : `${23 * scale}vw` }}>
               {/* Gifts */}
-              <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
+              <div className="flex flex-wrap" style={{ gap: `${0.42 * giftCardScale * scale}vw` }}>
                 {giftListLocal.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
                   return (
                     <div
                       key={gift.name}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})` }}
-                      className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border min-w-[80px] transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                      className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale}vw`, minWidth: `${3.5 * scale}vw` }}
                     >
-                      <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
-                      <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
+                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale}vw`, marginTop: `${0.1 * scale}vw` }}>➔</div>
                     </div>
                   );
                 })}
@@ -265,14 +282,14 @@ export const OverlayView: React.FC = () => {
 
               {/* Top Jugadores Local */}
               {(donorsDisplay !== 'pitch') && (
-                <div className="flex flex-col w-full items-start" style={{ gap: `${donorsGap}px` }}>
-                  <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5">Top Jugadores</h3>
+                <div className={`flex flex-col ${isVertical ? 'items-center w-full' : 'w-full'}`} style={{ gap: `${donorsGap * scale}px` }}>
+                  <h3 className={`font-sports text-white/80 tracking-widest uppercase ${isVertical ? 'text-center' : ''}`} style={{ fontSize: `${0.52 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>Top Jugadores</h3>
                   {topDonorsLocal.map((donor, idx) => (
-                    <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                      <span className="text-amber-500 font-black text-lg w-5">#{idx + 1}</span>
-                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
-                      {donorsShowName && <span className="text-white font-bold truncate flex-1 text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
-                      {donorsShowDiamonds && <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
+                    <div key={donor.username} className={`flex items-center rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ gap: `${0.42 * scale}vw`, padding: `${0.31 * scale}vw`, backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
+                      <span className="text-amber-500 font-black" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
+                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
+                      {donorsShowName && <span className="text-white font-bold truncate flex-1" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
+                      {donorsShowDiamonds && <span className="text-amber-400 font-bold" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
                     </div>
                   ))}
                 </div>
@@ -280,20 +297,20 @@ export const OverlayView: React.FC = () => {
             </div>
 
             {/* VISITOR SIDE */}
-            <div className="flex flex-col gap-3 items-end w-[450px]">
+            <div className={`flex flex-col ${isVertical ? 'w-full items-center' : 'items-end'}`} style={{ gap: `${0.63 * scale}vw`, width: isVertical ? '100%' : `${23 * scale}vw` }}>
               {/* Gifts */}
-              <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
+              <div className="flex flex-wrap" style={{ gap: `${0.42 * giftCardScale * scale}vw` }}>
                 {giftListVisitor.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
                   return (
                     <div
                       key={gift.name}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})` }}
-                      className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border min-w-[80px] transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                      className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale}vw`, minWidth: `${3.5 * scale}vw` }}
                     >
-                      <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
-                      <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">←</div>
+                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale}vw`, marginTop: `${0.1 * scale}vw` }}>←</div>
                     </div>
                   );
                 })}
@@ -301,14 +318,14 @@ export const OverlayView: React.FC = () => {
 
               {/* Top Jugadores Visitor */}
               {(donorsDisplay !== 'pitch') && (
-                <div className="flex flex-col w-full items-end" style={{ gap: `${donorsGap}px` }}>
-                  <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5 text-right">Top Jugadores</h3>
+                <div className={`flex flex-col ${isVertical ? 'items-center w-full' : 'w-full'}`} style={{ gap: `${donorsGap * scale}px` }}>
+                  <h3 className={`font-sports text-white/80 tracking-widest uppercase ${isVertical ? 'text-center' : 'text-right'}`} style={{ fontSize: `${0.52 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>Top Jugadores</h3>
                   {topDonorsVisitor.map((donor, idx) => (
-                    <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                      {donorsShowDiamonds && <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
-                      {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
-                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
-                      <span className="text-amber-500 font-black text-lg w-5 text-right">#{idx + 1}</span>
+                    <div key={donor.username} className={`flex items-center rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ gap: `${0.42 * scale}vw`, padding: `${0.31 * scale}vw`, backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
+                      {donorsShowDiamonds && <span className="text-amber-400 font-bold" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
+                      {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
+                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
+                      <span className="text-amber-500 font-black text-right" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
                     </div>
                   ))}
                 </div>

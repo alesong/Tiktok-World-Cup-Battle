@@ -4,13 +4,13 @@ import { Shield, Radio, Settings, Trophy, Zap, Sparkles, Volume2, Plus, Trash, P
 
 const TIKTOK_GIFTS = [
   { name: 'Rosa', icon: '🌹', defaultPrice: 1 },
-  { name: 'TikTok', icon: '⚡', defaultPrice: 1 },
+  { name: 'TikTok', icon: '🎵', defaultPrice: 1 },
   { name: 'GG', icon: '🎮', defaultPrice: 1 },
   { name: 'Helado', icon: '🍦', defaultPrice: 1 },
   { name: 'Mini Altavoz', icon: '🔊', defaultPrice: 1 },
   { name: 'Pop', icon: '💥', defaultPrice: 1 },
   { name: 'Creeper', icon: '👻', defaultPrice: 1 },
-  { name: 'Freestyle', icon: '🎵', defaultPrice: 1 },
+  { name: 'Freestyle', icon: '🎤', defaultPrice: 1 },
   { name: 'Oldies', icon: '🎶', defaultPrice: 1 },
   { name: 'Wink Wink', icon: '😉', defaultPrice: 1 },
   { name: 'Glow Stick', icon: '🪄', defaultPrice: 1 },
